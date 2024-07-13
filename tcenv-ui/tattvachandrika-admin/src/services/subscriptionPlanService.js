@@ -1,31 +1,43 @@
 import axios from 'axios';
 
-const apiUrl = 'http://localhost:8000/api/subscription-plans/'; // Adjust the URL to your API endpoint
+const apiUrl = 'http://localhost:8000/api/subscription-plans/';
+const languageApiUrl = 'http://localhost:8000/api/subscription-languages/';
+const modeApiUrl = 'http://localhost:8000/api/subscription-modes/';
 
-const getSubscriptionPlans = () => {
+const getPlans = () => {
   return axios.get(apiUrl);
 };
 
-const getSubscriptionPlanById = (id) => {
+const getPlanById = (id) => {
   return axios.get(`${apiUrl}${id}/`);
 };
 
-const createSubscriptionPlan = (subscriptionPlan) => {
-  return axios.post(apiUrl, subscriptionPlan);
+const createPlan = (plan) => {
+  return axios.post(apiUrl, plan);
 };
 
-const updateSubscriptionPlan = (id, subscriptionPlan) => {
-  return axios.put(`${apiUrl}${id}/`, subscriptionPlan);
+const updatePlan = (id, plan) => {
+  return axios.put(`${apiUrl}${id}/`, plan);
 };
 
-const deleteSubscriptionPlan = (id) => {
+const deletePlan = (id) => {
   return axios.delete(`${apiUrl}${id}/`);
 };
 
+const getLanguages = () => {
+  return axios.get(languageApiUrl);
+};
+
+const getModes = () => {
+  return axios.get(modeApiUrl);
+};
+
 export default {
-  getSubscriptionPlans,
-  getSubscriptionPlanById,
-  createSubscriptionPlan,
-  updateSubscriptionPlan,
-  deleteSubscriptionPlan
+  getPlans,
+  getPlanById,
+  createPlan,
+  updatePlan,
+  deletePlan,
+  getLanguages,
+  getModes,
 };

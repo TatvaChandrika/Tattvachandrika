@@ -67,7 +67,7 @@
 </template>
 
 <script>
-import subscriptionService from '../services/subscriptionService';
+import subscriptionPlanService from '../services/subscriptionPlanService';
 import confirmationModal from './ConfirmationModal.vue';
 
 export default {
@@ -91,21 +91,21 @@ export default {
   },
   methods: {
     loadPlans() {
-      subscriptionService.getPlans().then(response => {
+      subscriptionPlanService.getPlans().then(response => {
         this.plans = response.data;
       }).catch(error => {
         console.error("There was an error retrieving the subscription plans!", error);
       });
     },
     loadLanguages() {
-      subscriptionService.getLanguages().then(response => {
+      subscriptionPlanService.getLanguages().then(response => {
         this.languages = response.data;
       }).catch(error => {
         console.error("There was an error retrieving the languages!", error);
       });
     },
     loadModes() {
-      subscriptionService.getModes().then(response => {
+      subscriptionPlanService.getModes().then(response => {
         this.modes = response.data;
       }).catch(error => {
         console.error("There was an error retrieving the modes!", error);
@@ -131,14 +131,14 @@ export default {
         subscription_mode: plan.subscription_mode
       };
       if (plan._id) {
-        subscriptionService.updatePlan(plan._id, planData).then(() => {
+        subscriptionPlanService.updatePlan(plan._id, planData).then(() => {
           this.loadPlans();
           this.editPlanId = null;
         }).catch(error => {
           console.error("There was an error updating the subscription plan!", error);
         });
       } else {
-        subscriptionService.createPlan(planData).then(() => {
+        subscriptionPlanService.createPlan(planData).then(() => {
           this.loadPlans();
           this.editPlanId = null;
         }).catch(error => {
@@ -155,7 +155,7 @@ export default {
     },
     deletePlan() {
       if (this.planToDelete) {
-        subscriptionService.deletePlan(this.planToDelete).then(() => {
+        subscriptionPlanService.deletePlan(this.planToDelete).then(() => {
           this.loadPlans();
           this.hideDeleteModal();
         }).catch(error => {

@@ -18,8 +18,20 @@ const updateMagazineSubscriber = (id, subscriber) => {
   return axios.put(`${apiUrl}${id}/`, subscriber);
 };
 
-const deleteMagazineSubscriber = (id) => {
+const softDeleteMagazineSubscriber = (id) => {
   return axios.delete(`${apiUrl}${id}/`);
+};
+
+const activateMagazineSubscriber = (id) => {
+  return axios.post(`${apiUrl}${id}/activate/`);
+};
+
+const getCategories = () => {
+  return axios.get('http://localhost:8000/api/subscriber-categories/');
+};
+
+const getTypes = () => {
+  return axios.get('http://localhost:8000/api/subscriber-types/');
 };
 
 export default {
@@ -27,5 +39,8 @@ export default {
   getMagazineSubscriberById,
   createMagazineSubscriber,
   updateMagazineSubscriber,
-  deleteMagazineSubscriber
+  softDeleteMagazineSubscriber,
+  activateMagazineSubscriber,
+  getCategories,
+  getTypes
 };

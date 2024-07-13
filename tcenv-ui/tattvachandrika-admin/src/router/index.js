@@ -6,8 +6,8 @@ import SubscriberCategories from '../components/SubscriberCategories.vue';
 import SubscriberTypes from '../components/SubscriberTypes.vue';
 import SubscriptionPlans from '../components/SubscriptionPlans.vue';
 import MagazineSubscribers from '../components/MagazineSubscribers.vue';
-import AddSubscription from '../components/AddSubscription.vue';
-import SubscriberDetails from '../components/SubscriberDetails.vue';
+import SubscriberDetails from '../components/MagazineSubscriberDetails.vue';
+import PaymentModes from '../components/PaymentModes.vue';
 
 const routes = [
   {
@@ -46,14 +46,15 @@ const routes = [
     component: MagazineSubscribers
   },
   {
-    path: '/subscribers/:subscriberId/add-subscription',
-    name: 'AddSubscription',
-    component: AddSubscription
+    path: '/subscribers/:id',
+    name: 'SubscriberDetails',
+    component: SubscriberDetails,
+    props: true,
   },
   {
-    path: '/subscribers/:subscriberId',
-    name: 'SubscriberDetails',
-    component: SubscriberDetails
+    path: '/payment-modes',
+    name: 'PaymentModes',
+    component: PaymentModes
   }
 ];
 

@@ -2,6 +2,7 @@ import mongoengine as me
 import datetime
 import calendar
 from .utils import generate_id
+import pytz
 
 class SubscriberCategory(me.Document):
     _id = me.StringField(primary_key=True, default=lambda: generate_id('SCAT', 'subscriber_category'))
@@ -51,6 +52,10 @@ class SubscriptionPlan(me.Document):
                 return f"v{latest_version_number + 1}"
         else:
             return "v1"
+            
+class PaymentMode(me.Document):
+    _id = me.StringField(primary_key=True, default=lambda: generate_id('PMODE', 'payment_mode'))
+    name = me.StringField(max_length=255)
 
 class MagazineSubscriber(me.Document):
     _id = me.StringField(primary_key=True, default=lambda: generate_id('SUBS', 'subscriber'))
@@ -65,8 +70,12 @@ class MagazineSubscriber(me.Document):
     category = me.ReferenceField(SubscriberCategory, null=True)
     stype = me.ReferenceField(SubscriberType, null=True)
     notes = me.StringField()
-    active = me.BooleanField(default=True)
+    hasActiveSubscriptions = me.BooleanField(default=False)
+    isDeleted = me.BooleanField(default=False)
     
+    def get_subscriptions(self):
+        return Subscription.objects.filter(subscriber=self)
+
 class Subscription(me.Document):
     _id = me.StringField(primary_key=True, default=lambda: generate_id('SUBSCR', 'subscription'))
     subscriber = me.ReferenceField(MagazineSubscriber, reverse_delete_rule=me.CASCADE)
@@ -74,11 +83,19 @@ class Subscription(me.Document):
     start_date = me.DateField()
     end_date = me.DateField()
     active = me.BooleanField(default=True)
+    payment_status = me.StringField(max_length=50, choices=["Pending", "Paid", "Failed"], default="Pending")
+    payment_mode = me.ReferenceField(PaymentMode, null=True)
+    payment_date = me.DateField(null=True)
 
     def save(self, *args, **kwargs):
         self.start_date = self.calculate_start_date()
         self.end_date = self.calculate_end_date()
         super(Subscription, self).save(*args, **kwargs)
+        # Update hasActiveSubscriptions
+        now = datetime.datetime.now(pytz.timezone('Asia/Kolkata'))
+        active_subs_count = Subscription.objects(subscriber=self.subscriber, end_date__gte=now, active=True).count()
+        self.subscriber.hasActiveSubscriptions = active_subs_count > 0
+        self.subscriber.save()
 
     def calculate_start_date(self):
         today = datetime.date.today()
