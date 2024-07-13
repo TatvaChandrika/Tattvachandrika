@@ -29,6 +29,29 @@ class SubscriptionPlan(me.Document):
     subscription_mode = me.ReferenceField(SubscriptionMode, null=True)
     duration_in_months = me.IntField()  # Duration in months
 
+    def save(self, *args, **kwargs):
+        if not self.version:
+            self.version = self.generate_version()
+        self.name = f"{self.duration_in_months} months - {self.subscription_language.name} - {self.subscription_mode.name}"
+        super(SubscriptionPlan, self).save(*args, **kwargs)
+
+    def generate_version(self):
+        existing_plans = SubscriptionPlan.objects(
+            subscription_language=self.subscription_language,
+            subscription_mode=self.subscription_mode,
+            duration_in_months=self.duration_in_months
+        ).order_by('-version')
+
+        if existing_plans:
+            latest_plan = existing_plans.first()
+            if latest_plan.subscription_price == self.subscription_price:
+                return latest_plan.version
+            else:
+                latest_version_number = int(latest_plan.version[1:])
+                return f"v{latest_version_number + 1}"
+        else:
+            return "v1"
+
 class MagazineSubscriber(me.Document):
     _id = me.StringField(primary_key=True, default=lambda: generate_id('SUBS', 'subscriber'))
     name = me.StringField(max_length=255)
