@@ -8,37 +8,6 @@
       </ol>
     </nav>
 
-    <!-- Add Subscriber Category Form -->
-    <form @submit.prevent="addSubscriberCategory">
-      <div class="mb-3">
-        <input
-          type="text"
-          v-model="subscriberCategoryForm.name"
-          placeholder="New Subscriber Category Name"
-          class="form-control"
-        />
-      </div>
-      <button type="submit" class="btn btn-primary mt-2">Add</button>
-    </form>
-
-    <!-- Edit Subscriber Category Form (conditional) -->
-    <div v-if="editSubscriberCategory">
-      <h3>Edit Subscriber Category</h3>
-      <form @submit.prevent="updateSubscriberCategory">
-        <div class="mb-3">
-          <input
-            type="text"
-            v-model="subscriberCategoryForm.name"
-            placeholder="Edit Subscriber Category Name"
-            class="form-control"
-          />
-        </div>
-        <button type="submit" class="btn btn-success mt-2">Save</button>
-        <button type="button" class="btn btn-secondary mt-2" @click="cancelEdit">Cancel</button>
-      </form>
-    </div>
-
-    <!-- Subscriber Categories Table -->
     <table class="table table-striped mt-4">
       <thead>
         <tr>
@@ -47,29 +16,65 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="subscriberCategory in subscriberCategories" :key="subscriberCategory._id">
-          <td>{{ subscriberCategory.name }}</td>
+        <tr v-if="addingNew">
+          <td><input type="text" v-model="newSubscriberCategory.name" class="form-control" /></td>
           <td>
-            <button class="btn btn-warning btn-sm" @click="editCategory(subscriberCategory)">Edit</button>
-            <button class="btn btn-danger btn-sm" @click="deleteSubscriberCategory(subscriberCategory._id)">Delete</button>
+            <button class="btn btn-primary btn-sm" @click="saveNewSubscriberCategory">Save</button>
+            <button class="btn btn-secondary btn-sm" @click="cancelNewSubscriberCategory">Cancel</button>
           </td>
+        </tr>
+        <tr v-for="category in subscriberCategories" :key="category._id">
+          <template v-if="editMode === category._id">
+            <td><input type="text" v-model="editSubscriberCategory.name" class="form-control" /></td>
+            <td>
+              <button class="btn btn-primary btn-sm" @click="updateSubscriberCategory(category._id)">Save</button>
+              <button class="btn btn-secondary btn-sm" @click="cancelEdit">Cancel</button>
+            </td>
+          </template>
+          <template v-else>
+            <td>{{ category.name }}</td>
+            <td>
+              <button class="btn btn-warning btn-sm" @click="editSubscriberCategoryFunc(category)">Edit</button>
+              <button class="btn btn-danger btn-sm" @click="showDeleteModal(category._id)">Delete</button>
+            </td>
+          </template>
         </tr>
       </tbody>
     </table>
+    <button class="btn btn-success mt-3" @click="startAddingNew">Add New Category</button>
+
+    <confirmation-modal
+      v-if="showConfirmationModal"
+      :show="showConfirmationModal"
+      title="Confirm Delete"
+      message="Are you sure you want to delete this subscriber category?"
+      @close="hideDeleteModal"
+      @confirm="deleteSubscriberCategory"
+    />
   </div>
 </template>
 
 <script>
 import subscriberCategoryService from '../services/subscriberCategoryService';
+import ConfirmationModal from './ConfirmationModal.vue';
 
 export default {
+  components: {
+    ConfirmationModal
+  },
   data() {
     return {
       subscriberCategories: [],
-      subscriberCategoryForm: {
+      addingNew: false,
+      editMode: null,
+      showConfirmationModal: false,
+      categoryToDelete: null,
+      newSubscriberCategory: {
         name: ''
       },
-      editSubscriberCategory: null
+      editSubscriberCategory: {
+        name: ''
+      }
     };
   },
   created() {
@@ -83,41 +88,56 @@ export default {
         console.error("There was an error retrieving the subscriber categories!", error);
       });
     },
-    addSubscriberCategory() {
-      if (this.subscriberCategoryForm.name.trim()) {
-        subscriberCategoryService.createSubscriberCategory(this.subscriberCategoryForm).then(() => {
-          this.loadSubscriberCategories();
-          this.subscriberCategoryForm.name = '';
-        }).catch(error => {
-          console.error("There was an error adding the subscriber category!", error);
-        });
-      }
+    startAddingNew() {
+      this.addingNew = true;
+      this.resetNewSubscriberCategory();
     },
-    editCategory(subscriberCategory) {
-      this.editSubscriberCategory = { ...subscriberCategory };
-      this.subscriberCategoryForm.name = subscriberCategory.name;
+    cancelNewSubscriberCategory() {
+      this.addingNew = false;
     },
-    updateSubscriberCategory() {
-      if (this.subscriberCategoryForm.name.trim()) {
-        subscriberCategoryService.updateSubscriberCategory(this.editSubscriberCategory._id, this.subscriberCategoryForm).then(() => {
-          this.loadSubscriberCategories();
-          this.editSubscriberCategory = null;
-          this.subscriberCategoryForm.name = '';
-        }).catch(error => {
-          console.error("There was an error updating the subscriber category!", error);
-        });
-      }
+    resetNewSubscriberCategory() {
+      this.newSubscriberCategory = {
+        name: ''
+      };
     },
-    deleteSubscriberCategory(id) {
-      subscriberCategoryService.deleteSubscriberCategory(id).then(() => {
+    saveNewSubscriberCategory() {
+      subscriberCategoryService.createSubscriberCategory(this.newSubscriberCategory).then(() => {
         this.loadSubscriberCategories();
+        this.addingNew = false;
+      }).catch(error => {
+        console.error("There was an error saving the subscriber category!", error);
+      });
+    },
+    editSubscriberCategoryFunc(category) {
+      this.editMode = category._id;
+      this.editSubscriberCategory = { ...category };
+    },
+    cancelEdit() {
+      this.editMode = null;
+    },
+    updateSubscriberCategory(id) {
+      subscriberCategoryService.updateSubscriberCategory(id, this.editSubscriberCategory).then(() => {
+        this.loadSubscriberCategories();
+        this.editMode = null;
+      }).catch(error => {
+        console.error("There was an error updating the subscriber category!", error);
+      });
+    },
+    showDeleteModal(id) {
+      this.categoryToDelete = id;
+      this.showConfirmationModal = true;
+    },
+    hideDeleteModal() {
+      this.showConfirmationModal = false;
+      this.categoryToDelete = null;
+    },
+    deleteSubscriberCategory() {
+      subscriberCategoryService.deleteSubscriberCategory(this.categoryToDelete).then(() => {
+        this.loadSubscriberCategories();
+        this.hideDeleteModal();
       }).catch(error => {
         console.error("There was an error deleting the subscriber category!", error);
       });
-    },
-    cancelEdit() {
-      this.editSubscriberCategory = null;
-      this.subscriberCategoryForm.name = '';
     }
   }
 };

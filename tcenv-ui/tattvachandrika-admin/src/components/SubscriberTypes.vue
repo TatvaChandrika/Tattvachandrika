@@ -8,37 +8,6 @@
       </ol>
     </nav>
 
-    <!-- Add Subscriber Type Form -->
-    <form @submit.prevent="addSubscriberType">
-      <div class="mb-3">
-        <input
-          type="text"
-          v-model="subscriberTypeForm.name"
-          placeholder="New Subscriber Type Name"
-          class="form-control"
-        />
-      </div>
-      <button type="submit" class="btn btn-primary mt-2">Add</button>
-    </form>
-
-    <!-- Edit Subscriber Type Form (conditional) -->
-    <div v-if="editSubscriberType">
-      <h3>Edit Subscriber Type</h3>
-      <form @submit.prevent="updateSubscriberType">
-        <div class="mb-3">
-          <input
-            type="text"
-            v-model="subscriberTypeForm.name"
-            placeholder="Edit Subscriber Type Name"
-            class="form-control"
-          />
-        </div>
-        <button type="submit" class="btn btn-success mt-2">Save</button>
-        <button type="button" class="btn btn-secondary mt-2" @click="cancelEdit">Cancel</button>
-      </form>
-    </div>
-
-    <!-- Subscriber Types Table -->
     <table class="table table-striped mt-4">
       <thead>
         <tr>
@@ -47,29 +16,65 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="subscriberType in subscriberTypes" :key="subscriberType._id">
-          <td>{{ subscriberType.name }}</td>
+        <tr v-if="addingNew">
+          <td><input type="text" v-model="newSubscriberType.name" class="form-control" /></td>
           <td>
-            <button class="btn btn-warning btn-sm" @click="editType(subscriberType)">Edit</button>
-            <button class="btn btn-danger btn-sm" @click="deleteSubscriberType(subscriberType._id)">Delete</button>
+            <button class="btn btn-primary btn-sm" @click="saveNewSubscriberType">Save</button>
+            <button class="btn btn-secondary btn-sm" @click="cancelNewSubscriberType">Cancel</button>
           </td>
+        </tr>
+        <tr v-for="type in subscriberTypes" :key="type._id">
+          <template v-if="editMode === type._id">
+            <td><input type="text" v-model="editSubscriberType.name" class="form-control" /></td>
+            <td>
+              <button class="btn btn-primary btn-sm" @click="updateSubscriberType(type._id)">Save</button>
+              <button class="btn btn-secondary btn-sm" @click="cancelEdit">Cancel</button>
+            </td>
+          </template>
+          <template v-else>
+            <td>{{ type.name }}</td>
+            <td>
+              <button class="btn btn-warning btn-sm" @click="editSubscriberTypeFunc(type)">Edit</button>
+              <button class="btn btn-danger btn-sm" @click="showDeleteModal(type._id)">Delete</button>
+            </td>
+          </template>
         </tr>
       </tbody>
     </table>
+    <button class="btn btn-success mt-3" @click="startAddingNew">Add New Type</button>
+
+    <confirmation-modal
+      v-if="showConfirmationModal"
+      :show="showConfirmationModal"
+      title="Confirm Delete"
+      message="Are you sure you want to delete this subscriber type?"
+      @close="hideDeleteModal"
+      @confirm="deleteSubscriberType"
+    />
   </div>
 </template>
 
 <script>
 import subscriberTypeService from '../services/subscriberTypeService';
+import ConfirmationModal from './ConfirmationModal.vue';
 
 export default {
+  components: {
+    ConfirmationModal
+  },
   data() {
     return {
       subscriberTypes: [],
-      subscriberTypeForm: {
+      addingNew: false,
+      editMode: null,
+      showConfirmationModal: false,
+      typeToDelete: null,
+      newSubscriberType: {
         name: ''
       },
-      editSubscriberType: null
+      editSubscriberType: {
+        name: ''
+      }
     };
   },
   created() {
@@ -83,41 +88,56 @@ export default {
         console.error("There was an error retrieving the subscriber types!", error);
       });
     },
-    addSubscriberType() {
-      if (this.subscriberTypeForm.name.trim()) {
-        subscriberTypeService.createSubscriberType(this.subscriberTypeForm).then(() => {
-          this.loadSubscriberTypes();
-          this.subscriberTypeForm.name = '';
-        }).catch(error => {
-          console.error("There was an error adding the subscriber type!", error);
-        });
-      }
+    startAddingNew() {
+      this.addingNew = true;
+      this.resetNewSubscriberType();
     },
-    editType(subscriberType) {
-      this.editSubscriberType = { ...subscriberType };
-      this.subscriberTypeForm.name = subscriberType.name;
+    cancelNewSubscriberType() {
+      this.addingNew = false;
     },
-    updateSubscriberType() {
-      if (this.subscriberTypeForm.name.trim()) {
-        subscriberTypeService.updateSubscriberType(this.editSubscriberType._id, this.subscriberTypeForm).then(() => {
-          this.loadSubscriberTypes();
-          this.editSubscriberType = null;
-          this.subscriberTypeForm.name = '';
-        }).catch(error => {
-          console.error("There was an error updating the subscriber type!", error);
-        });
-      }
+    resetNewSubscriberType() {
+      this.newSubscriberType = {
+        name: ''
+      };
     },
-    deleteSubscriberType(id) {
-      subscriberTypeService.deleteSubscriberType(id).then(() => {
+    saveNewSubscriberType() {
+      subscriberTypeService.createSubscriberType(this.newSubscriberType).then(() => {
         this.loadSubscriberTypes();
+        this.addingNew = false;
+      }).catch(error => {
+        console.error("There was an error saving the subscriber type!", error);
+      });
+    },
+    editSubscriberTypeFunc(type) {
+      this.editMode = type._id;
+      this.editSubscriberType = { ...type };
+    },
+    cancelEdit() {
+      this.editMode = null;
+    },
+    updateSubscriberType(id) {
+      subscriberTypeService.updateSubscriberType(id, this.editSubscriberType).then(() => {
+        this.loadSubscriberTypes();
+        this.editMode = null;
+      }).catch(error => {
+        console.error("There was an error updating the subscriber type!", error);
+      });
+    },
+    showDeleteModal(id) {
+      this.typeToDelete = id;
+      this.showConfirmationModal = true;
+    },
+    hideDeleteModal() {
+      this.showConfirmationModal = false;
+      this.typeToDelete = null;
+    },
+    deleteSubscriberType() {
+      subscriberTypeService.deleteSubscriberType(this.typeToDelete).then(() => {
+        this.loadSubscriberTypes();
+        this.hideDeleteModal();
       }).catch(error => {
         console.error("There was an error deleting the subscriber type!", error);
       });
-    },
-    cancelEdit() {
-      this.editSubscriberType = null;
-      this.subscriberTypeForm.name = '';
     }
   }
 };
