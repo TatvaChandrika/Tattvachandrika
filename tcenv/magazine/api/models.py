@@ -31,8 +31,7 @@ class SubscriptionPlan(me.Document):
     duration_in_months = me.IntField()  # Duration in months
 
     def save(self, *args, **kwargs):
-        if not self.version:
-            self.version = self.generate_version()
+        self.version = self.generate_version()
         self.name = f"{self.duration_in_months} months - {self.subscription_language.name} - {self.subscription_mode.name}"
         super(SubscriptionPlan, self).save(*args, **kwargs)
 
